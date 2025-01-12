@@ -2,6 +2,7 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+import fs from 'fs/promises';
 import TwitterPipeline from './TwitterPipeline.js';
 import Logger from './Logger.js';
 
@@ -15,25 +16,38 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
-const args = process.argv.slice(2);
-const username = args[0] || 'degenspartan';
-
-const pipeline = new TwitterPipeline(username);
-
-const cleanup = async () => {
-  Logger.warn('\n🛑 Received termination signal. Cleaning up...');
+async function scrapeUsernamesFromFile(filePath) {
   try {
-    if (pipeline.scraper) {
-      await pipeline.scraper.logout();
-      Logger.success('🔒 Logged out successfully.');
+    const data = await fs.readFile(filePath, 'utf-8');
+    const usernames = data.split('\n').map((name) => name.trim()).filter((name) => name);
+    if (usernames.length === 0) {
+      throw new Error('No usernames found in the file.');
     }
+    return usernames;
   } catch (error) {
-    Logger.error(`❌ Error during cleanup: ${error.message}`);
+    Logger.error(`Failed to read usernames from file: ${error.message}`);
+    process.exit(1);
   }
-  process.exit(0);
-};
+}
 
-process.on('SIGINT', cleanup);
-process.on('SIGTERM', cleanup);
+async function main() {
+  const filePath = 'usernames.txt'; // Path to your usernames file
+  const usernames = await scrapeUsernamesFromFile(filePath);
 
-pipeline.run().catch(() => process.exit(1));
+  for (const username of usernames) {
+    const pipeline = new TwitterPipeline(username);
+
+    try {
+      await pipeline.run();
+    } catch (error) {
+      Logger.error(`Failed to scrape tweets for ${username}: ${error.message}`);
+    }
+  }
+
+  Logger.success('✅ Completed scraping for all users.');
+}
+
+main().catch((error) => {
+  Logger.error(`Unexpected error: ${error.message}`);
+  process.exit(1);
+});

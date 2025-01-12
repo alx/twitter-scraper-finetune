@@ -26,6 +26,10 @@ class TwitterPipeline {
   constructor(username) {
     this.username = username;
     this.dataOrganizer = new DataOrganizer("pipeline", username);
+    this.dataOrganizer = new DataOrganizer(
+      path.join('pipeline', username),
+      username
+    );
     this.paths = this.dataOrganizer.getPaths();
     this.tweetFilter = new TweetFilter();
 
