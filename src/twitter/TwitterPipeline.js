@@ -766,8 +766,8 @@ async saveCookies() {
         );
       }
 
-      // Show sample tweets
-      await this.showSampleTweets(allTweets);
+      // Show sample tweets (commented out for now)
+      // await this.showSampleTweets(allTweets);
 
       // Cleanup
       await this.cleanup();
