@@ -5,6 +5,7 @@ dotenv.config();
 import fs from 'fs/promises';
 import TwitterPipeline from './TwitterPipeline.js';
 import Logger from './Logger.js';
+import DatabaseManager from './DatabaseManager.js';
 import { Scraper } from 'agent-twitter-client';
 
 process.on('unhandledRejection', (error) => {
@@ -80,17 +81,28 @@ async function main() {
 
   const scraper = await initializeScraper();
 
-  for (const username of usernames) {
-    const pipeline = new TwitterPipeline(username, scraper);
+  // Initialize the database manager (singleton)
+  const databaseManager = DatabaseManager.getInstance();
+  await databaseManager.initialize();
 
-    try {
-      await pipeline.run();
-    } catch (error) {
-      Logger.error(`Failed to scrape tweets for @${username}: ${error.message}`);
+  try {
+    for (const username of usernames) {
+      const pipeline = new TwitterPipeline(username, scraper);
+
+      try {
+        await pipeline.run();
+      } catch (error) {
+        Logger.error(`Failed to scrape tweets for @${username}: ${error.message}`);
+      }
     }
-  }
 
-  Logger.success('✅ Completed scraping for all users.');
+    Logger.success('✅ Completed scraping for all users.');
+  } catch (error) {
+    Logger.error(`Unexpected error during execution: ${error.message}`);
+  } finally {
+    // Close the database connection
+    await databaseManager.close();
+  }
 }
 
 main().catch((error) => {

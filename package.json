@@ -32,6 +32,8 @@
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-adblocker": "^2.13.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7",
     "ua-parser-js": "^2.0.0-rc.1"
   }
 }
