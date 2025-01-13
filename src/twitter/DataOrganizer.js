@@ -6,11 +6,9 @@ import Logger from './Logger.js';
 
 class DataOrganizer {
   constructor(baseDir, username) {
-    this.baseDir = path.join(
-      baseDir,
-      username.toLowerCase(),
-      format(new Date(), 'yyyy-MM-dd')
-    );
+    // Use epoch time for the directory name
+    const epochTime = Math.floor(Date.now() / 1000);
+    this.baseDir = path.join(baseDir, username.toLowerCase(), epochTime.toString());
     this.createDirectories();
   }
 
