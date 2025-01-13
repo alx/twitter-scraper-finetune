@@ -5,6 +5,7 @@ dotenv.config();
 import fs from 'fs/promises';
 import TwitterPipeline from './TwitterPipeline.js';
 import Logger from './Logger.js';
+import { Scraper } from 'agent-twitter-client';
 
 process.on('unhandledRejection', (error) => {
   Logger.error(`❌ Unhandled promise rejection: ${error.message}`);
@@ -16,10 +17,15 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
+/**
+ * Reads usernames from a file.
+ * @param {string} filePath - Path to the file containing usernames.
+ * @returns {Promise<string[]>} - List of usernames.
+ */
 async function scrapeUsernamesFromFile(filePath) {
   try {
     const data = await fs.readFile(filePath, 'utf-8');
-    const usernames = data.split('\n').map((name) => name.trim()).filter((name) => name);
+    const usernames = data.split('\n').map((name) => name.trim()).filter(Boolean);
     if (usernames.length === 0) {
       throw new Error('No usernames found in the file.');
     }
@@ -30,17 +36,57 @@ async function scrapeUsernamesFromFile(filePath) {
   }
 }
 
+/**
+ * Initializes and authenticates a shared scraper.
+ * @returns {Promise<Scraper>} - Authenticated scraper instance.
+ */
+async function initializeScraper() {
+  const scraper = new Scraper();
+  Logger.info('Initializing shared scraper...');
+  try {
+    if (await scraper.isLoggedIn()) {
+      Logger.success('✅ Scraper is already authenticated.');
+      return scraper;
+    }
+
+    Logger.info('Logging in to Twitter...');
+    const username = process.env.TWITTER_USERNAME;
+    const password = process.env.TWITTER_PASSWORD;
+    const email = process.env.TWITTER_EMAIL;
+
+    if (!username || !password || !email) {
+      throw new Error('Missing Twitter credentials. Please set TWITTER_USERNAME, TWITTER_PASSWORD, and TWITTER_EMAIL in the .env file.');
+    }
+
+    await scraper.login(username, password, email);
+    if (!(await scraper.isLoggedIn())) {
+      throw new Error('Login verification failed.');
+    }
+
+    Logger.success('✅ Successfully authenticated with Twitter.');
+    return scraper;
+  } catch (error) {
+    Logger.error(`Failed to initialize scraper: ${error.message}`);
+    process.exit(1);
+  }
+}
+
+/**
+ * Main function to scrape tweets for multiple users.
+ */
 async function main() {
   const filePath = 'usernames.txt'; // Path to your usernames file
   const usernames = await scrapeUsernamesFromFile(filePath);
 
+  const scraper = await initializeScraper();
+
   for (const username of usernames) {
-    const pipeline = new TwitterPipeline(username);
+    const pipeline = new TwitterPipeline(username, scraper);
 
     try {
       await pipeline.run();
     } catch (error) {
-      Logger.error(`Failed to scrape tweets for ${username}: ${error.message}`);
+      Logger.error(`Failed to scrape tweets for @${username}: ${error.message}`);
     }
   }
 
