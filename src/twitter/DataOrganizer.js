@@ -364,7 +364,7 @@ Raw data, analytics, and exports can be found in:
       entries: tweets.map((tweet) => {
         return `
         <entry>
-          <title>${tweet.text.replace(/(.{50})..+/, "$1...")}</title>
+          <title>${tweet.text.replace(/^(.{50}).*/g, "$1...")}</title>
           <link>${tweet.permanentUrl}</link>
           <id>${tweet.id}</id>
           <published>${epochToAtomFeedDate(tweet.timestamp)}</published>
