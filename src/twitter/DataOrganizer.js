@@ -18,7 +18,7 @@ class DataOrganizer {
    */
   async createDirectories() {
     const latestPath = path.join(this.userDir, 'latest');
-    await fs.symlink(this.baseDir.split('/').pop(), latestPath);
+    await fs.symlink(latestPath, this.baseDir);
     const dirs = ['raw', 'processed', 'analytics', 'exports', 'meta'];
     for (const dir of dirs) {
       const fullPath = path.join(this.baseDir, dir);
