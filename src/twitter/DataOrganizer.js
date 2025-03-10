@@ -37,7 +37,7 @@ class DataOrganizer {
       if (latestExists == false) {
         await fs.unlink(this.latestPath)
       }
-      await fs.symlink(this.baseDir, this.latestPath);
+      await fs.symlink(this.baseDir.split('/').pop(), this.latestPath);
       Logger.info(`✅ Created symlink: ${this.latestPath}`);
     } catch (error) {
       Logger.warn(`⚠️  Failed to create symlink ${this.latestPath}: ${error.message}`);
