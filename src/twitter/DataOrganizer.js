@@ -31,12 +31,12 @@ class DataOrganizer {
     }
 
     try {
+      await fs.unlink(this.latestPath)
+    } catch (error) {
+      Logger.debug(`⚠️  Failed to unlink symlink ${this.latestPath}: ${error.message}`);
+    }
 
-      const fileExists = path => stat(path).then(() => true).catch(() => false);
-      const latestExists = await fileExists(this.latestPath) ;
-      if (latestExists == false) {
-        await fs.unlink(this.latestPath)
-      }
+    try {
       await fs.symlink(this.baseDir.split('/').pop(), this.latestPath);
       Logger.info(`✅ Created symlink: ${this.latestPath}`);
     } catch (error) {
