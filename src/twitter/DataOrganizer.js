@@ -9,7 +9,7 @@ class DataOrganizer {
     // Use epoch time for the directory name
     const epochTime = Math.floor(Date.now() / 1000);
     this.userDir = path.join(baseDir, username.toLowerCase());
-    this.baseDir = path.join(userDir, epochTime.toString());
+    this.baseDir = path.join(this.userDir, epochTime.toString());
     this.createDirectories();
   }
 
