@@ -31,7 +31,7 @@ class DataOrganizer {
 
     try {
       const fileExists = path => fs.promises.stat(this.latestPath).then(() => true, () => false);
-      Logger.info(`debug - latestPath: ${latestPath}`);
+      Logger.info(`debug - latestPath: ${this.latestPath}`);
       Logger.info(`debug - file exists: ${fileExists}`);
       if (fileExists) {
         await fs.unlink(this.latestPath)
