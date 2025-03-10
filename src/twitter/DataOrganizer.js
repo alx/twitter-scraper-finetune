@@ -8,9 +8,8 @@ class DataOrganizer {
   async constructor(baseDir, username) {
     // Use epoch time for the directory name
     const epochTime = Math.floor(Date.now() / 1000);
-    this.baseDir = path.join(baseDir, username.toLowerCase(), epochTime.toString());
-    const latestPath = path.join(baseDir, username.toLowerCase(), 'latest');
-    await fs.symlink(fullPath, latestPath);
+    this.userDir = path.join(baseDir, username.toLowerCase());
+    this.baseDir = path.join(userDir, epochTime.toString());
     this.createDirectories();
   }
 
@@ -18,6 +17,8 @@ class DataOrganizer {
    * Creates necessary directories for storing data.
    */
   async createDirectories() {
+    const latestPath = path.join(this.userDir, 'latest');
+    await fs.symlink(this.baseDir, latestPath);
     const dirs = ['raw', 'processed', 'analytics', 'exports', 'meta'];
     for (const dir of dirs) {
       const fullPath = path.join(this.baseDir, dir);
