@@ -30,6 +30,7 @@ class DataOrganizer {
     }
 
     try {
+      await fs.unlink(this.latestPath)
       await fs.symlink(this.baseDir, this.latestPath);
       Logger.info(`✅ Create symlink: ${this.latestPath}`);
     } catch (error) {
