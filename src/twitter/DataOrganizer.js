@@ -33,7 +33,10 @@ class DataOrganizer {
     try {
 
       const fileExists = path => stat(path).then(() => true).catch(() => false);
-      if (await fileExists(this.latestPath)) {
+      Logger.info(`debug - latestPath: ${this.latestPath}`);
+      const latestExists = await fileExists(this.latestPath) ;
+      Logger.info(`debug - file exists: ${latestExists}`);
+      if (latestExists) {
         await fs.unlink(this.latestPath)
       }
       await fs.symlink(this.baseDir, this.latestPath);
