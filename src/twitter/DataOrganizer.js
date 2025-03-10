@@ -19,7 +19,7 @@ class DataOrganizer {
   async createDirectories() {
 
     try {
-      await fs.symlink(this.baseDir, this.latestPath);
+      await fs.symlink(this.latestPath, this.baseDir);
       Logger.info(`✅ Create symlink: ${this.latestPath}`);
     } catch (error) {
       Logger.warn(`⚠️  Failed to create symlink ${this.latestPath}: ${error.message}`);
