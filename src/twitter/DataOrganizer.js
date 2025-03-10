@@ -45,6 +45,7 @@ class DataOrganizer {
       },
       exports: {
         summary: path.join(this.baseDir, 'exports', 'summary.md'),
+        atomFeed: path.join(this.baseDir, 'exports', 'feed.atom'),
       },
       meta: {
         nextToken: path.join(this.baseDir, 'meta', 'next_token.txt'),
@@ -136,6 +137,11 @@ class DataOrganizer {
       const summary = this.generateSummary(tweets, analytics);
       await fs.writeFile(paths.exports.summary, summary, 'utf-8');
       Logger.success(`✅ Saved summary to ${paths.exports.summary}`);
+
+      // Generate and save atom feed
+      const atomFeed = this.generateAtomFeed(tweets);
+      await fs.writeFile(paths.exports.atomFeed, atomFeed, 'utf-8');
+      Logger.success(`✅ Saved atom feed to ${paths.exports.atomFeed}`);
 
       return analytics;
     } catch (error) {
@@ -314,6 +320,40 @@ Raw data, analytics, and exports can be found in:
 **${this.baseDir}**
 `;
   }
+
+  /**
+   * Generates an atom feed of the collected data.
+   * @param {object[]} tweets - Array of tweet objects.
+   * @returns {string} atomFeed - Atom formatted feed.
+   */
+  generateAtomFeed(tweets) {
+    const feed = {
+      entries: tweets.map((tweet) => {
+        return `
+        <entry>
+          <title>${tweet.text}</title>
+          <link>${tweet.permanentUrl}</link>
+          <id>${tweet.id}</id>
+          <published>${new Date(tweet.timestamp).toISOString()}</published>
+          <updated>${new Date(tweet.timestamp).toISOString()}</updated>
+          <content type="html">${tweet.text}</content>
+        </entry>
+        `;
+      }),
+    };
+
+    const atomFeed = `<?xml version="1.0" encoding="utf-8"?>
+    <feed xmlns="http://www.w3.org/2005/Atom">
+      <title>Twitter Data Collection Feed</title>
+      <link>${this.baseDir}</link>
+      <updated>${new Date().toISOString()}</updated>
+      <id>urn:uuid:60a76c80-d399-11d9-b93F-0003939d7cb9</id>
+      ${feed.entries.join('\n')}
+    </feed>`;
+
+    return atomFeed;
+  }
+
 }
 
 export default DataOrganizer;
