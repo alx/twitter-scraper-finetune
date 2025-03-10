@@ -7,6 +7,7 @@ import Logger from './Logger.js';
 
 class DataOrganizer {
   constructor(baseDir, username) {
+    this.username = username
     // Use epoch time for the directory name
     const epochTime = Math.floor(Date.now() / 1000);
     this.latestPath = path.join(baseDir, username.toLowerCase(), 'latest');
@@ -347,11 +348,10 @@ Raw data, analytics, and exports can be found in:
       entries: tweets.map((tweet) => {
         return `
         <entry>
-          <title>${tweet.text}</title>
+          <title>${tweet.text.replace(/(.{50})..+/, "$1...")}</title>
           <link>${tweet.permanentUrl}</link>
           <id>${tweet.id}</id>
-          <published>${new Date(tweet.timestamp).toISOString()}</published>
-          <updated>${new Date(tweet.timestamp).toISOString()}</updated>
+          <published>${tweet.timestamp}</published>
           <content type="html">${tweet.text}</content>
         </entry>
         `;
@@ -360,10 +360,9 @@ Raw data, analytics, and exports can be found in:
 
     const atomFeed = `<?xml version="1.0" encoding="utf-8"?>
     <feed xmlns="http://www.w3.org/2005/Atom">
-      <title>Twitter Data Collection Feed</title>
+      <title>${this.username} atom feed</title>
       <link>${this.baseDir}</link>
       <updated>${new Date().toISOString()}</updated>
-      <id>urn:uuid:60a76c80-d399-11d9-b93F-0003939d7cb9</id>
       ${feed.entries.join('\n')}
     </feed>`;
 
