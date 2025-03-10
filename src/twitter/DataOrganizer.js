@@ -20,9 +20,9 @@ class DataOrganizer {
 
     try {
       await fs.symlink(this.baseDir, this.latestPath);
-      Logger.info(`✅ Create symlink: ${latestPath}`);
+      Logger.info(`✅ Create symlink: ${this.latestPath}`);
     } catch (error) {
-      Logger.warn(`⚠️  Failed to create symlink ${latestPath}: ${error.message}`);
+      Logger.warn(`⚠️  Failed to create symlink ${this.latestPath}: ${error.message}`);
     }
 
     const dirs = ['raw', 'processed', 'analytics', 'exports', 'meta'];
