@@ -1,5 +1,6 @@
 // src/utils/DataOrganizer.js
 import fs from 'fs/promises';
+import { stat } from 'fs/promises';
 import path from 'path';
 import { format } from 'date-fns';
 import Logger from './Logger.js';
@@ -30,9 +31,8 @@ class DataOrganizer {
     }
 
     try {
-      const fileExists = path => fs.promises.stat(path).then(() => true, () => false);
-      Logger.info(`debug - latestPath: ${this.latestPath}`);
-      Logger.info(`debug - file exists: ${fileExists}`);
+
+      const fileExists = path => stat(path).then(() => true).catch(() => false);
       if (await fileExists(this.latestPath)) {
         await fs.unlink(this.latestPath)
       }
