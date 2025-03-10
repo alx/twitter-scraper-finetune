@@ -344,6 +344,22 @@ Raw data, analytics, and exports can be found in:
    * @returns {string} atomFeed - Atom formatted feed.
    */
   generateAtomFeed(tweets) {
+
+    const epochToAtomFeedDate = epoch => {
+      // Convert epoch to milliseconds
+      const date = new Date(epoch * 1000);
+
+      // Convert date to ISO format
+      const isoDate = date.toISOString();
+
+      // Atom feeds typically use the format: YYYY-MM-DDTHH:MM:SSZ
+      // The toISOString() method returns a similar format with milliseconds and a 'Z' at the end.
+      // If you need to remove milliseconds, you can do so like this:
+      const atomFeedDate = isoDate.replace('Z', '+00:00').replace(/\.\d+/, '');
+
+      return atomFeedDate;
+    }
+
     const feed = {
       entries: tweets.map((tweet) => {
         return `
@@ -351,7 +367,7 @@ Raw data, analytics, and exports can be found in:
           <title>${tweet.text.replace(/(.{50})..+/, "$1...")}</title>
           <link>${tweet.permanentUrl}</link>
           <id>${tweet.id}</id>
-          <published>${tweet.timestamp}</published>
+          <published>${epochToAtomFeedDate(tweet.timestamp)}</published>
           <content type="html">${tweet.text}</content>
         </entry>
         `;
