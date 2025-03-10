@@ -31,11 +31,13 @@ class DataOrganizer {
 
     try {
       const fileExists = path => fs.promises.stat(this.latestPath).then(() => true, () => false);
+      Logger.info(`debug - latestPath: ${latestPath}`);
+      Logger.info(`debug - file exists: ${fileExists}`);
       if (fileExists) {
         await fs.unlink(this.latestPath)
       }
       await fs.symlink(this.baseDir, this.latestPath);
-      Logger.info(`✅ Create symlink: ${this.latestPath}`);
+      Logger.info(`✅ Created symlink: ${this.latestPath}`);
     } catch (error) {
       Logger.warn(`⚠️  Failed to create symlink ${this.latestPath}: ${error.message}`);
     }
