@@ -18,13 +18,6 @@ class DataOrganizer {
    */
   async createDirectories() {
 
-    try {
-      await fs.symlink(this.baseDir, this.latestPath);
-      Logger.info(`✅ Create symlink: ${this.latestPath}`);
-    } catch (error) {
-      Logger.warn(`⚠️  Failed to create symlink ${this.latestPath}: ${error.message}`);
-    }
-
     const dirs = ['raw', 'processed', 'analytics', 'exports', 'meta'];
     for (const dir of dirs) {
       const fullPath = path.join(this.baseDir, dir);
@@ -34,6 +27,13 @@ class DataOrganizer {
       } catch (error) {
         Logger.warn(`⚠️  Failed to create directory ${fullPath}: ${error.message}`);
       }
+    }
+
+    try {
+      await fs.symlink(this.baseDir, this.latestPath);
+      Logger.info(`✅ Create symlink: ${this.latestPath}`);
+    } catch (error) {
+      Logger.warn(`⚠️  Failed to create symlink ${this.latestPath}: ${error.message}`);
     }
   }
 
