@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import Logger from './Logger.js';
 
 class DataOrganizer {
-  constructor(baseDir, username) {
+  async constructor(baseDir, username) {
     // Use epoch time for the directory name
     const epochTime = Math.floor(Date.now() / 1000);
     this.baseDir = path.join(baseDir, username.toLowerCase(), epochTime.toString());
