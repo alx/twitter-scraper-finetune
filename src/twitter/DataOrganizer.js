@@ -30,7 +30,8 @@ class DataOrganizer {
     }
 
     try {
-      if (fs.existsSync(this.latestPath)) {
+      const fileExists = path => fs.promises.stat(this.latestPath).then(() => true, () => false);
+      if (fileExists) {
         await fs.unlink(this.latestPath)
       }
       await fs.symlink(this.baseDir, this.latestPath);
