@@ -3,3 +3,5 @@ node_modules/
 pipeline/
 characters/
 cookies/
+*.csv
+usernames*.txt
