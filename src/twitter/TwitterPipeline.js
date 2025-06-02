@@ -48,7 +48,7 @@ class TwitterPipeline {
     return Array.from(tweets.values());
   }
 
-  async processAndSaveTweets(tweets, twitterHandle) {
+  async processAndSaveTweets(tweets) {
     if (tweets.length === 0) {
       Logger.warn(`No tweets found for @${this.username}.`);
       return;
@@ -64,7 +64,7 @@ class TwitterPipeline {
 
     // Save to linkace instance
     Logger.info(`Saving tweets for @${this.username} to linkace...`);
-    await this.linkaceManager.saveTweets(tweets);
+    await this.linkaceManager.saveTweets(tweets, this.username);
   }
 
   async run() {
@@ -73,7 +73,7 @@ class TwitterPipeline {
     try {
       await this.verifyScraperSession();
       const tweets = await this.collectTweets();
-      await this.processAndSaveTweets(tweets, this.username);
+      await this.processAndSaveTweets(tweets);
 
       Logger.success(`Pipeline completed for @${this.username}.`);
     } catch (error) {
