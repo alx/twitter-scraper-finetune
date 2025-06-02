@@ -6,6 +6,7 @@ import fs from 'fs/promises';
 import TwitterPipeline from './TwitterPipeline.js';
 import Logger from './Logger.js';
 import DatabaseManager from './DatabaseManager.js';
+import LinkaceManager from './LinkaceManager.js';
 import { Scraper } from 'agent-twitter-client';
 
 process.on('unhandledRejection', (error) => {
