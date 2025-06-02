@@ -24,6 +24,7 @@ class LinkaceManager {
     this.linkaceApiKey = process.env.LINKACE_API_KEY;
     this.linkaceListId = process.env.LINKACE_LIST;
     this.isInitialized = false;
+    this.apiClient = null; // Initialize apiClient here
   }
 
   /**
@@ -70,7 +71,7 @@ class LinkaceManager {
     try {
       // A simple GET request to test authentication and host validity.
       // Fetching lists is a common, lightweight operation.
-      await this.apiClient.get('/api/v2/lists?limit=1');
+      await this.apiClient.get('/api/v1/lists?limit=1');
       Logger.success('✅ LinkaceManager initialized and connection tested successfully.');
       this.isInitialized = true;
     } catch (error) {
@@ -93,12 +94,46 @@ class LinkaceManager {
   }
 
   /**
-   * Saves a batch of tweets to Linkace.
+   * Checks if a URL already exists in Linkace.
+   * @param {string} url - The URL to check.
+   * @returns {Promise<boolean>} - True if the URL exists, false otherwise.
+   */
+  async urlExists(url) {
+    if (!this.isInitialized || !this.apiClient) {
+      Logger.error('LinkaceManager is not initialized. Call initialize() first.');
+      throw new Error('LinkaceManager is not initialized.');
+    }
+    try {
+      // Linkace API uses a query parameter `query` for searching, which can include URLs.
+      // We'll check if searching for the exact URL returns any results.
+      const response = await this.apiClient.get('/api/v2/search/links', {
+        params: { query: url }, // Search for the URL, limit to 1 result for efficiency
+      });
+      // If data array is not empty and the first item's URL matches, it exists.
+      // Linkace search might return partial matches, so ensure exact match.
+      return response.data && response.data.data && response.data.data.length > 0 && response.data.data.some(link => link.url === url);
+    } catch (error) {
+      let errorMessage = `Error checking if URL exists (${url}): `;
+       if (error.response) {
+        errorMessage += `Status ${error.response.status}, Data: ${JSON.stringify(error.response.data)}`;
+      } else if (error.request) {
+        errorMessage += 'No response received from server.';
+      } else {
+        errorMessage += error.message;
+      }
+      Logger.error(errorMessage);
+      // To be safe, assume it might exist or rethrow to handle upstream
+      return false; // Or throw error; for now, we'll assume it doesn't exist to allow save attempt
+    }
+  }
+
+  /**
+   * Saves a batch of tweets to Linkace using the bulk operation.
    * @param {Array} tweets - List of tweet objects.
    * @param {string} twitterHandle - The Twitter handle of the user whose tweets are being saved.
    */
   async saveTweets(tweets, twitterHandle) {
-    if (!this.isInitialized) {
+    if (!this.isInitialized || !this.apiClient) {
       Logger.error('LinkaceManager is not initialized. Call initialize() first.');
       throw new Error('LinkaceManager is not initialized.');
     }
@@ -107,64 +142,87 @@ class LinkaceManager {
       return;
     }
 
-    Logger.info(`Attempting to save ${tweets.length} tweets to Linkace for @${twitterHandle}...`);
-    let successfulSaves = 0;
-    let failedSaves = 0;
+    Logger.info(`Processing ${tweets.length} tweets for bulk save to Linkace for @${twitterHandle}...`);
+
+    const linksToCreate = [];
+    let skippedForMissingData = 0;
+    let skippedAsExisting = 0;
 
     for (const tweet of tweets) {
       if (!tweet.permanentUrl || !tweet.text || !tweet.username) {
         Logger.warn(`Skipping tweet due to missing data: ${JSON.stringify(tweet)}`);
-        failedSaves++;
+        skippedForMissingData++;
         continue;
       }
 
-      // Construct title: username + shorten description of content
+      const exists = await this.urlExists(tweet.permanentUrl);
+      if (exists) {
+        Logger.info(`Tweet URL ${tweet.permanentUrl} already exists in Linkace. Skipping.`);
+        skippedAsExisting++;
+        continue;
+      }
+
       const shortDescription = tweet.text.length > 50 ? `${tweet.text.substring(0, 47)}...` : tweet.text;
       const title = `${tweet.username}: ${shortDescription}`;
 
-      const payload = {
+      linksToCreate.push({
         url: tweet.permanentUrl,
         title: title,
         description: tweet.text,
         tags: [`source_twitter`, `username_${twitterHandle}`, `inject_scraper`],
         visibility: 2, // Defines the visibility: 1 - public, 2 - internal, 3 - private
-      };
-
-      if (this.linkaceListId) {
-        payload.lists = [parseInt(this.linkaceListId, 10)];
-      }
-
-      try {
-        const response = await this.apiClient.post('/api/v2/links', payload);
-        if (response.status === 201 || response.status === 200) { // 201 Created, 200 OK if it might update
-          Logger.debug(`Successfully saved tweet ${tweet.id} to Linkace: ${tweet.permanentUrl}`);
-          successfulSaves++;
-        } else {
-          Logger.warn(`Failed to save tweet ${tweet.id} to Linkace. Status: ${response.status}, Response: ${JSON.stringify(response.data)}`);
-          failedSaves++;
-        }
-      } catch (error) {
-        failedSaves++;
-        let errorMessage = `Error saving tweet ${tweet.id} (${tweet.permanentUrl}) to Linkace: `;
-        if (error.response) {
-          errorMessage += `Status ${error.response.status}, Data: ${JSON.stringify(error.response.data)}`;
-        } else if (error.request) {
-          errorMessage += 'No response received from server.';
-        } else {
-          errorMessage += error.message;
-        }
-        Logger.error(errorMessage);
-        // Optionally, decide if one error should stop the whole batch
-        // For now, we'll continue trying to save other tweets
-      }
+        lists: [parseInt(this.linkaceListId, 10)]
+      });
     }
 
-    Logger.info(`Linkace save summary for @${twitterHandle}: ${successfulSaves} successful, ${failedSaves} failed.`);
+    if (linksToCreate.length === 0) {
+      Logger.info(`No new tweets to save to Linkace for @${twitterHandle}. Missing data: ${skippedForMissingData}, Already existed: ${skippedAsExisting}.`);
+      return;
+    }
+
+    Logger.info(`Attempting to bulk save ${linksToCreate.length} new tweets to Linkace for @${twitterHandle}...`);
+
+    const bulkPayload = {
+      models: linksToCreate,
+    };
+
+    let successfulSaves = 0;
+    let failedSaves = 0;
+
+    try {
+      const response = await this.apiClient.post('/api/v2/bulk/links', bulkPayload);
+      if (response.status === 201) {
+        successfulSaves = linksToCreate.length; // All links in the batch were successful
+        Logger.debug(`Bulk save successful (201): ${successfulSaves} tweets for @${twitterHandle}.`);
+      } else {
+        // Unexpected status code
+        failedSaves = linksToCreate.length;
+        Logger.warn(`Bulk save for @${twitterHandle} failed with unexpected status: ${response.status}. Response: ${JSON.stringify(response.data)}`);
+      }
+    } catch (error) {
+      failedSaves = linksToCreate.length; // Assume all failed if the request itself errors out
+      let errorMessage = `Error during bulk save for @${twitterHandle}: `;
+      if (error.response) {
+        errorMessage += `Status ${error.response.status}, Data: ${JSON.stringify(error.response.data)}`;
+      } else if (error.request) {
+        errorMessage += 'No response received from server.';
+      } else {
+        errorMessage += error.message;
+      }
+      Logger.error(errorMessage);
+    }
+
+    Logger.info(`Linkace bulk save summary for @${twitterHandle}:`);
+    Logger.info(`  Successfully created: ${successfulSaves}`);
+    Logger.info(`  Failed to create: ${failedSaves}`);
+    Logger.info(`  Skipped (missing data): ${skippedForMissingData}`);
+    Logger.info(`  Skipped (already existed): ${skippedAsExisting}`);
+
     if (failedSaves > 0) {
-        Logger.warn(`${failedSaves} tweets could not be saved to Linkace. Check logs for details.`);
+        Logger.warn(`${failedSaves} tweets could not be saved to Linkace during bulk operation. Check logs for details.`);
     }
     if (successfulSaves > 0) {
-        Logger.success(`✅ Successfully saved ${successfulSaves} tweets to Linkace.`);
+        Logger.success(`✅ Successfully bulk saved ${successfulSaves} new tweets to Linkace.`);
     }
   }
 
@@ -175,6 +233,7 @@ class LinkaceManager {
   async close() {
     Logger.info('LinkaceManager closed (no active connections to manage).');
     this.isInitialized = false; // Reset initialization state
+    this.apiClient = null; // Clear the apiClient
   }
 }
 
