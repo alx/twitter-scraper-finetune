@@ -85,6 +85,10 @@ async function main() {
   const databaseManager = DatabaseManager.getInstance();
   await databaseManager.initialize();
 
+  // Initialize the linkace manager (singleton)
+  const linkaceManager = LinkaceManager.getInstance();
+  await linkaceManager.initialize();
+
   try {
     for (const username of usernames) {
       const pipeline = new TwitterPipeline(username, scraper);
@@ -102,6 +106,8 @@ async function main() {
   } finally {
     // Close the database connection
     await databaseManager.close();
+    // Close the linkace connection
+    await linkaceManager.close();
   }
 }
 
