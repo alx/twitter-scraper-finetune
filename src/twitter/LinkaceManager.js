@@ -71,7 +71,7 @@ class LinkaceManager {
     try {
       // A simple GET request to test authentication and host validity.
       // Fetching lists is a common, lightweight operation.
-      await this.apiClient.get('/api/v1/lists?limit=1');
+      await this.apiClient.get('/api/v2/lists');
       Logger.success('✅ LinkaceManager initialized and connection tested successfully.');
       this.isInitialized = true;
     } catch (error) {
