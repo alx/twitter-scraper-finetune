@@ -1,6 +1,7 @@
 import Logger from './Logger.js';
 import DataOrganizer from './DataOrganizer.js';
 import DatabaseManager from './DatabaseManager.js';
+import LinkaceManager from './LinkaceManager.js';
 
 class TwitterPipeline {
   constructor(username, scraper) {
@@ -8,6 +9,7 @@ class TwitterPipeline {
     this.scraper = scraper;
     this.dataOrganizer = new DataOrganizer('pipeline', username);
     this.databaseManager = DatabaseManager.getInstance(); // Singleton instance
+    this.linkaceManager = LinkaceManager.getInstance(); // Singleton instance
   }
 
   async verifyScraperSession() {
@@ -46,7 +48,7 @@ class TwitterPipeline {
     return Array.from(tweets.values());
   }
 
-  async processAndSaveTweets(tweets) {
+  async processAndSaveTweets(tweets, twitterHandle) {
     if (tweets.length === 0) {
       Logger.warn(`No tweets found for @${this.username}.`);
       return;
@@ -59,6 +61,10 @@ class TwitterPipeline {
     // Save to SQLite database
     Logger.info(`Saving tweets for @${this.username} to database...`);
     await this.databaseManager.saveTweets(tweets);
+
+    // Save to linkace instance
+    Logger.info(`Saving tweets for @${this.username} to linkace...`);
+    await this.linkaceManager.saveTweets(tweets);
   }
 
   async run() {
@@ -67,7 +73,7 @@ class TwitterPipeline {
     try {
       await this.verifyScraperSession();
       const tweets = await this.collectTweets();
-      await this.processAndSaveTweets(tweets);
+      await this.processAndSaveTweets(tweets, this.username);
 
       Logger.success(`Pipeline completed for @${this.username}.`);
     } catch (error) {

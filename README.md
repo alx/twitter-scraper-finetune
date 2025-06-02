@@ -26,6 +26,10 @@ Pipeline for generating AI character files and training datasets by scraping pub
    RETRY_DELAY=         # delay between retries
    MIN_DELAY=           # minimum delay between requests
    MAX_DELAY=           # maximum delay between requests
+   
+   LINKACE_HOST=        # Linkace host
+   LINKACE_API_KEY=     # Linkace api key
+   LINKACE_LIST=        # Linkace list_id to store links
    ```
 
 ## Usage
@@ -35,6 +39,19 @@ Pipeline for generating AI character files and training datasets by scraping pub
 npm run twitter -- username
 ```
 Example: `npm run twitter -- pmarca`
+
+#### Linkace storage
+
+* `src/twitter/LinkaceManager.js` similar to `src/twitter/DatabaseManager.js`, but saving each tweet as a linkace link instead of a database item
+* linkace api, link creation: https://api-docs.linkace.org/#tag/Links/operation/post-api-v2-links
+
+* Linkace link:
+** url: tweet url
+** title: tweet username + shorten description of content
+** description: tweet content
+** tags: #source_twitter #username_TWITTER_HANDLE #inject_scraper
+** lists: [env.LINKACE_LIST]
+
 
 ### Blog Collection
 ```bash
